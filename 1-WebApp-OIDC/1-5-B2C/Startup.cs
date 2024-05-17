@@ -10,6 +10,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using mywebapp.Controllers;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebApp_OpenIDConnect_DotNet
 {
@@ -35,14 +39,31 @@ namespace WebApp_OpenIDConnect_DotNet
             });
 
             // Configuration to sign-in users with Azure AD B2C
-            services.AddMicrosoftIdentityWebAppAuthentication(Configuration, Constants.AzureAdB2C);
-            
+
+            //services.AddMicrosoftIdentityWebAppAuthentication(Configuration, Constants.AzureAdB2C);
+
+            services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+                    .AddMicrosoftIdentityWebApp(options =>
+                    {
+                        Configuration.Bind(Constants.AzureAdB2C, options);
+                        options.Events ??= new OpenIdConnectEvents();
+                        options.Events.OnRedirectToIdentityProvider += OnRedirectToIdentityProviderFunc;
+                        options.Events.OnRedirectToIdentityProviderForSignOut += OnRedirectToIdentityProviderForSignOutFunc;
+                        options.SaveTokens = true;
+                    });
+
+            services.Configure<OpenIdConnectOptions>(options =>
+                {
+                    options.ResponseType = OpenIdConnectResponseType.IdTokenToken;
+                });
+
             services.AddControllersWithViews()
                 .AddMicrosoftIdentityUI();
 
             services.AddRazorPages();
 
             //Configuring appsettings section AzureAdB2C, into IOptions
+
             services.AddOptions();
             services.Configure<OpenIdConnectOptions>(Configuration.GetSection("AzureAdB2C"));
         }
@@ -64,7 +85,10 @@ namespace WebApp_OpenIDConnect_DotNet
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
+            // Add the Microsoft Identity Web cookie policy
+            app.UseCookiePolicy();
             app.UseRouting();
+            // Add the ASP.NET Core authentication service
             app.UseAuthentication();
             app.UseAuthorization();
 
@@ -73,8 +97,46 @@ namespace WebApp_OpenIDConnect_DotNet
                 endpoints.MapControllerRoute(
                     name: "default",
                     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+                // Add endpoints for Razor pages
                 endpoints.MapRazorPages();
             });
+        }
+
+        private async Task OnRedirectToIdentityProviderFunc(RedirectContext context)
+        {
+            //// Custom code here
+            //if (!context.HttpContext.Items.ContainsKey("GpNr"))
+            //{
+            //    // Go to URL to enter GPNR
+            //    // Is GPNr valid against backend? Then->
+            //    //string GPNr = (string) context.HttpContext.Items["GPNr"];
+            //    string GpNr = "test_GpNr";
+
+            //    if (GpNr != null)
+            //    {
+            //        // Send parameter to authentication request
+            //        context.ProtocolMessage.SetParameter("GpNr", GpNr);
+            //    }
+            //    // Go to Homepage
+            //}
+            //else
+            //{ context.ProtocolMessage.SetParameter("GpNr", "GpNr0"); }
+
+            // Don't remove this line
+            await Task.CompletedTask.ConfigureAwait(false);
+        }
+
+        private async Task OnRedirectToIdentityProviderForSignOutFunc(RedirectContext context)
+        {
+            var id_token_hint = context.Properties.Items.FirstOrDefault(x => x.Key == "id_token_hint").Value;
+            if (id_token_hint != null)
+            {
+                // Send parameter to authentication request
+                context.ProtocolMessage.SetParameter("id_token_hint", id_token_hint);
+            }
+
+            await Task.CompletedTask.ConfigureAwait(false);
         }
     }
 }

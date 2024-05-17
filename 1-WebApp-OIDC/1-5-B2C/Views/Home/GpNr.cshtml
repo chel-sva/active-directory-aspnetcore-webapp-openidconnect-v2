@@ -1,0 +1,50 @@
+﻿@{
+	ViewData["Title"] = "GpNr";
+}
+@model Models.GpNr
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html>
+<head>
+ <style>
+.myform{
+  border: 2px outset black;
+  background-color: white  ;
+  text-align: center;
+  font-family: Arial;
+  
+}
+
+.myforma {
+  font-size: large;
+}
+/style>
+    <meta name="viewport" content="width=device-width" />
+    <title>Form</title>
+</head>
+<body>
+    <div class="myform" >
+            <h1 class="display-4">@ViewData["Title"].</h1>
+
+        <form asp-action="form" method="post">
+            <div  class="myforma">
+                <label asp-for="GpNrValue" class="" >Your GpNr:</label>
+                <input asp-for="GpNrValue" />
+            </div>
+            <div class="myforma">
+                <label asp-for="VkNr">Your VkNr:</label>
+                <a asp-for="VkNr" />
+            </div>
+            <div>
+               <p></p>
+            <button type="submit">Submit GpNr</button>
+             <p></p>
+        </div>
+
+        </form>
+    </div>
+
+</body>
+</html>
